@@ -1,4 +1,3 @@
-# !-- поменять формат вводимых рёбер (разбить на составляющие: ввести сначала начало, потом конец, потом вес если надо) 
 class Graph:
     
     # конструкторы
@@ -7,7 +6,6 @@ class Graph:
         self.is_directed = is_directed # ориентирован ли граф (булево значение), по умолчанию гриф неориентирован
         self.is_weighted = is_weighted # взвешен ли граф (булево значение), по умлчанию граф невзвешен
         self.adj_list = adj_list if adj_list is not None else {} # список смежности (структура данных - словарь)
-
 
     def copy_constructor(self, original): # констуктор копии
         self.name = original.name
@@ -26,40 +24,53 @@ class Graph:
             line = text[i].strip()
             if line == "":
                 continue
+                    
             if line.startswith("Граф "):
                 if current_graph is not None:
                     graphs.append(current_graph)
                 current_graph = Graph(line[5:].strip())
+                
             elif line.startswith("Вид: "):
-                if line[5:line.rfind(" ")].lower() == "неориентированный": self.is_directed = False
-                elif line[5:line.rfind(" ")].lower() == "ориентированный": self.is_directed = True
-                elif line[line.rfind(" "):].lower() == "взвешенный": self.is_weighted = True
-                elif line[line.rfind(" "):].lower() in ("невзвешенный", ""): self.is_weighted = False
+                line_lower = line.lower()
+                if "ориентированный" in line_lower:
+                    current_graph.is_directed = True
+                elif "неориентированный" in line_lower:
+                    current_graph.is_directed = False
                 else:
-                    print(f"Ошибка считывания графа с файла: неверный тип\n")
-                    break
+                    current_graph.is_directed = False # значение по умолчанию
+                if "взвешенный" in line_lower:
+                    current_graph.is_weighted = True
+                elif "невзвешенный" in line_lower:
+                    current_graph.is_weighted = False
+                else:
+                    current_graph.is_weighted = False # значение по умолчанию
+
             elif ":" in line:
+                if current_graph is None:
+                    continue
+                
                 parts = line.split(":")
-                if len(parts) >= 2: # строка должна быть вида A: [B, C] или A:
-                    vertex = parts[0].strip() # одна из вершин
-                    current_graph.add_vertex(vertex)
-                    edges = parts[1].strip() # вершины, с которыми связана вершина из переменной vertex
-                    if edges:
-                        for edge in [e.strip() for e in edges.split(",")]: # переводим строку в список
-                            if current_graph.is_weighted:
-                                if "(" in edge and ")" in edge:
-                                    end_vertex = edge.split("(")[0].strip()
-                                    weight_str = edge.split("(")[1].split(")")[0]
-                                    try:
-                                        weight = float(weight_str) # попытка перевести вес в число
-                                        current_graph.add_edge((vertex, end_vertex, weight))
-                                    except ValueError:
-                                        print(f"Ошибка: некорректный вес {weight_str} для ребра {vertex}-{end_vertex}")
-                                        break
-                                else:
-                                    current_graph.add_edge((vertex, edge, 0.0)) # по умолчанию вес ребра - 0
+                vertex = parts[0].strip()
+                current_graph.add_vertex(vertex)
+                edges = parts[1].strip()
+                
+                if edges:
+                    for edge in [e.strip() for e in edges.split(", ")]:
+                        if current_graph.is_weighted:
+                            if "(" in edge and ")" in edge: # обработка взвешенных рёбер (формат: вершина(вес))
+                                end_vertex = edge[:edge.find("(")]
+                                current_graph.add_vertex(end_vertex) # надо, надо добавить конечную вершину в граф
+                                weight_str = edge[(edge.find("(") + 1):edge.find(")")]
+                                try:
+                                    weight = float(weight_str)
+                                    current_graph.add_edge((vertex, end_vertex, weight))
+                                except ValueError:
+                                    print(f"Ошибка: некорректный вес {weight_str}\n")
                             else:
-                                current_graph.add_edge((vertex, edge))
+                                print(f"Ошибка: некорректный формат взвешенного графа\n")
+                        else:
+                            current_graph.add_vertex(edge) # надо, надо добавить конечную вершину в граф
+                            current_graph.add_edge((vertex, edge)) # для невзвешенных графов - просто добавляем ребро
         if current_graph is not None:
             graphs.append(current_graph) 
         return graphs
@@ -67,7 +78,7 @@ class Graph:
     # методы
     def transform_adj_list(self): # преобразовать список смежности в список рёбер
         if not self.adj_list:
-            print("Список смежнсти графа пуст, соответсвенно преобразовывать нечего\n")
+            print("Список смежности графа пуст, соответственно преобразовывать нечего\n")
             return False
         print(f"Превращение списка смежности графа {self.name} в список рёбер\n")
         edge_list = []
@@ -277,5 +288,15 @@ class Graph:
                 print(", ".join(neighbor_strs))
         print("\n")
 
+
+    def outdegree(self, vertex): # полустепень исхода вершины vertex
+        if vertex not in self.adj_list: # если вершины нет в графе (проверка на всякий случай, чтобы программа не падала)
+            return 0
+        if self.is_weighted: # если граф взвешенный, каждое ребро представлено кортежем (сосед, вес)
+            return len(self.adj_list[vertex]) # считаем количество соседей, куда можно попасть из данной вершины
+        else:
+            return len(self.adj_list[vertex])
+        
+
     def __str__(self): # вывод основной информации о графе (без списка смежности)
-        return f"Граф {self.name}, {"ориентированный" if self.is_directed else "неориентированный"}, {"взвешенный" if self.is_weighted else "невзвешенный"}"
+        return f"Граф {self.name}, {'ориентированный' if self.is_directed else 'неориентированный'}, {'взвешенный'if self.is_weighted else 'невзвешенный'}"
