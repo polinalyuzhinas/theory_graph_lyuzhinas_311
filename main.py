@@ -2,12 +2,7 @@ from graph_class import Graph
 
 all_graphs = []
 
-if __name__ == "__main__":
-    input_string = ">>> "
-    def menu_for_choice_graph(allgr, needtype=None): # функция выбора названия графа
-        if not allgr:
-            print("Пока не было создано ни одного графа. Нужно создать хотя бы один.\n")
-            return False
+def menu_for_choice_graph(allgr, needtype=None): # функция выбора названия графа
         print("Выберите имя графа (можно выйти из программы доcрочно, напечатав 0, если все графы пустые): \n")
         print(", ".join([g.name for g in allgr]))
         print(input_string, end="")
@@ -20,32 +15,46 @@ if __name__ == "__main__":
             if graph.name == selected:
                 if needtype is None:
                     return graph # если нам не требуется какой-то конкретный тип графа, то просто возвращаем выбранный
-                elif graph.isDirected == needtype:
+                elif graph.is_directed == needtype:
                     return graph
                 else:
-                    print(f"Мы ищем только графы вида {needtype}. Тот, что вы выбрали, к таковым не относится\n")
+                    print(f"Мы принимаем только {'ориентированные' if needtype else 'неориентированные'} графы. Тот, что вы выбрали, к таковым не относится\n")
                     return False  
         print("Этого графа ещё не создавали\n")
         return False
+
+def add_graphs_options(all_gr, dict): # функция добавления опций, связанных с графами (просто чтобы сократить код)
+    if all(o in dict.keys() for o in range(4, 14)):
+        return False
+    if all(o not in dict.keys() for o in range(4, 13)):
+        dict[4] = "4 - вывести список смежности графа"
+        dict[5] = "5 - добавить в граф вершину"
+        dict[6] = "6 - удалить вершину из графа"
+        dict[7] = "7 - добавить в граф ребро"
+        dict[8] = "8 - удалить из графа ребро"
+        dict[9] = "9 - вывести список рёбер графа"
+        dict[10] = "10 - записать граф в текстовый (формат .txt) файл"
+        dict[11] = "11 - скопировать существующий граф"
+        dict[12] = "12 - вывести те вершины, полустепень исхода которых больше, чем у заданной вершины"
+    if 13 not in dict.keys() and any(g.is_directed for g in all_gr):
+        dict[13] = "13 - вывести те вершины орграфа, которые являются одновременно заходящими и выходящими для заданной вершины"
+    return True
+
+if __name__ == "__main__":
+    update = "Добавлены новые опции! "
+    input_string = ">>> "
+    already_printed = False # если было обновление опций, то список опций выведется сразу по окончании операции, иначе нужно будет написать в консоль 100, этот флаг вспомогательный для этого функционала
+    need_update = False
     print("Добро пожаловать в программу для работы с различными графами!" +
-          "\n Добавили кое-что новенькое: если вы введёте вершину из графа, \n выведем те вершины, полустепень исхода которых больше, чем у данной! \n")
-    print(choice:="\nВыберите действие: " +
-          "\n 1 - создать граф по умолчанию" +
-          "\n 2 - создать граф с пользовательскими атрибутами" + 
-          "\n 3 - считать графы с текстового (.txt формата и только) файла" +
-          "\n 4 - вывести список смежности графа" +
-          "\n 5 - добавить в граф вершину" +
-          "\n 6 - удалить вершину из графа" +
-          "\n 7 - добавить в граф ребро" +
-          "\n 8 - удалить из графа ребро" +
-          "\n 9 - вывести список рёбер графа" +
-          "\n 10 - записать граф в текстовый (формат .txt) файл" +
-          "\n 11 - скопировать существующий граф" +
-          "\n 12 - вывести те вершины, полустепень исхода которых больше, чем у заданной вершины"
-          "\n 0 - выйти отсюда\n")
+          "\n Добавили ещё кое-что новенькое: если вы введёте вершину из ориентированного графа, \n выведем те вершины, которые одновременно и заходящие, и выходящие в данную вершину! \n")
+    options = {0: "0 - выйти отсюда", 1: "1 - создать граф по умолчанию", 2: "2 - создать граф с пользовательскими атрибутами", 3: "3 - считать графы с текстового (.txt формата и только) файла"}
+    print(choice:="Выберите действие: ")
+    print("\n".join(options.values()))
     print(input_string, end="")
     try:
         n = int(input())
+        if n not in options.keys():
+            n = -1
     except ValueError:
         n = -1
     print()
@@ -59,6 +68,11 @@ if __name__ == "__main__":
                 all_graphs.append(empty_graph)
                 print(empty_graph)
                 empty_graph.print_adj_list()
+                if add_graphs_options(all_graphs, options):
+                    print(update + choice)
+                    print("\n".join(options.values()))
+                    already_printed = True
+                    print(input_string, end="")
         elif n == 2:
             name = input("Введите имя графу ").strip()
             if name == "0": 
@@ -91,6 +105,11 @@ if __name__ == "__main__":
             all_graphs.append(graph)
             print(graph)
             graph.print_adj_list()
+            if add_graphs_options(all_graphs, options):
+                    print(update + choice)
+                    print("\n".join(options.values()))
+                    already_printed = True
+                    print(input_string, end="")
         elif n == 3:
             file_path = input("Введите имя файла: ").strip()
             print()
@@ -121,7 +140,15 @@ if __name__ == "__main__":
                             all_graphs.append(g)
                             print(g)
                             g.print_adj_list()
+                            if add_graphs_options(all_graphs, options): # проверяем для каждого созданного графа и накапливаем флаг
+                                need_update = True
+
                     print(f"Успешно загружено {len(graphs_from_file)} граф(ов)\n")
+                    if need_update: # если что-то в списке опций обновилось, выводим меню выбора
+                        print(update + choice)
+                        print("\n".join(options.values()))
+                        already_printed = True
+                        print(input_string, end="")
                 except Exception as e:
                     print(f"Ошибка чтения файла: {e}\n")
         elif n == 4:
@@ -245,21 +272,50 @@ if __name__ == "__main__":
                     for v in selected.adj_list.keys():
                         if selected.outdegree(v) > val:
                             temp.append(v)
-                    print(f"А вот вершины, полустепень исхода которых больше: {', '.join(temp)}\n")
+                    if not temp:
+                        print("Искомые вершины не найдены\n")
+                    else:
+                        print(f"А вот вершины, полустепень исхода которых больше: {', '.join(temp)}\n")
+        elif n == 13:
+            print("Этот пункт выполняется только для ориентированных графов!\n")
+            selected = menu_for_choice_graph(all_graphs, True)
+            if not selected: 
+                continue
+            else:
+                temp = []
+                begin_vertex = input("Введите какую-нибудь вершину из этого графа: ")
+                if begin_vertex not in selected.adj_list:
+                    print("Такой вершины в графе нет!\n")
+                    continue
+                else:
+                    for end_vertex in selected.adj_list[begin_vertex]:
+                        if selected.exist_edge(begin_vertex, end_vertex) and selected.exist_edge(end_vertex, begin_vertex):
+                            temp.append(end_vertex)
+                    if not temp:
+                        print("Искомые вершины не найдены\n")
+                    else:
+                        print(f"А вот вершины, которые являются одновременно заходящими и выходящими для заданной вершины: {', '.join(temp)}\n")
+                    
         elif n == 0:
             exit()
         elif n == -1:
             print("Некорректный ввод, выход из программы...")
             exit()
+        elif n == 100:
+            print(choice)
+            print("\n".join(options.values()))
+            print(input_string, end="")
+            already_printed = True
         else:
             print("Некорректный ввод\n")
-        print("Введите номер опции. Чтобы вывести список опций, введите число 100\n")
-        print(input_string, end="")
+        if not already_printed:
+            print("Введите номер опции. Чтобы вывести список опций, введите число 100\n")
+            print(input_string, end="")
+        already_printed = False
         try:
             n = int(input())
-            if n == 100:
-                print(choice)
-                print(input_string, end="")
+            if n not in options.keys() and n != 100:
+                n = -1
         except ValueError:
             n = -1
     print()

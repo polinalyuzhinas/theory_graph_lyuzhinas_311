@@ -31,7 +31,7 @@ class Graph:
                 current_graph = Graph(line[5:].strip())
                 
             elif line.startswith("Вид: "):
-                line_lower = line.lower()
+                line_lower = line.lower().split()
                 if "ориентированный" in line_lower:
                     current_graph.is_directed = True
                 elif "неориентированный" in line_lower:
@@ -220,7 +220,6 @@ class Graph:
             print(f"Вершина {end_vertex} не найдена в графе\n")
             return False
         
-        # Проверка существования ребра
         if self.is_weighted:
             edge_exists = any(neighbor[0] == end_vertex for neighbor in self.adj_list[start_vertex])
             if not edge_exists:
@@ -267,6 +266,19 @@ class Graph:
         print(f"Вершина {unnecessary_vertex} успешно удалена!\n")
         return True
 
+    def exist_edge(self, begin_vertex, end_vertex): # существует ли ребро между данным вершинами
+        if begin_vertex not in self.adj_list or end_vertex not in self.adj_list:
+            print("Одной из данных вершин нет в графе, добавьте их сначала\n")
+            return False
+    
+        if self.is_weighted:
+            for neighbor in self.adj_list[begin_vertex]: # для взвешенного графа: проверяем наличие кортежа (end_vertex, weight)
+                if neighbor[0] == end_vertex:  # сравниваем только имя вершины, игнорируя вес
+                    return True
+            return False
+        else:
+            return end_vertex in self.adj_list[begin_vertex] # для невзвешенного графа: прямая проверка
+        
     def print_adj_list(self): # вывести список смежности в консоль
         if not self.adj_list:
             print("Cписок смежности пуст\n")
@@ -296,7 +308,6 @@ class Graph:
             return len(self.adj_list[vertex]) # считаем количество соседей, куда можно попасть из данной вершины
         else:
             return len(self.adj_list[vertex])
-        
 
     def __str__(self): # вывод основной информации о графе (без списка смежности)
         return f"Граф {self.name}, {'ориентированный' if self.is_directed else 'неориентированный'}, {'взвешенный'if self.is_weighted else 'невзвешенный'}"
