@@ -38,15 +38,16 @@ def add_graphs_options(all_gr, dict): # функция добавления оп
         dict[12] = "12 - вывести те вершины, полустепень исхода которых больше, чем у заданной вершины"
     if 13 not in dict.keys() and any(g.is_directed for g in all_gr):
         dict[13] = "13 - вывести те вершины орграфа, которые являются одновременно заходящими и выходящими для заданной вершины"
+        dict[14] = "14 - построить дополнение для данного орграфа"
+        dict[15] = "15 - найти компоненты сильной связности орграфа"
     return True
 
 if __name__ == "__main__":
     update = "Добавлены новые опции! "
     input_string = ">>> "
     already_printed = False # если было обновление опций, то список опций выведется сразу по окончании операции, иначе нужно будет написать в консоль 100, этот флаг вспомогательный для этого функционала
-    need_update = False
-    print("Добро пожаловать в программу для работы с различными графами!" +
-          "\n Добавили ещё кое-что новенькое: если вы введёте вершину из ориентированного графа, \n выведем те вершины, которые одновременно и заходящие, и выходящие в данную вершину! \n")
+    need_update = False # флаг, оповещающий о том, что надо поменять список опций
+    print("Добро пожаловать в программу для работы с различными графами!")
     options = {0: "0 - выйти отсюда", 1: "1 - создать граф по умолчанию", 2: "2 - создать граф с пользовательскими атрибутами", 3: "3 - считать графы с текстового (.txt формата и только) файла"}
     print(choice:="Выберите действие: ")
     print("\n".join(options.values()))
@@ -236,7 +237,7 @@ if __name__ == "__main__":
             if not selected: 
                 continue
             else:
-                selected.transform_adj_list()
+                print(", ".join(selected.transform_adj_list()))
         elif n == 10:
             selected = menu_for_choice_graph(all_graphs)
             if not selected: 
@@ -295,7 +296,65 @@ if __name__ == "__main__":
                         print("Искомые вершины не найдены\n")
                     else:
                         print(f"А вот вершины, которые являются одновременно заходящими и выходящими для заданной вершины: {', '.join(temp)}\n")
-                    
+        elif n == 14:
+            print("Этот пункт выполняется только для ориентированных графов!\n")
+            selected = menu_for_choice_graph(all_graphs, True)
+            if not selected: 
+                continue
+            else:
+                comp = selected.construct_complement()
+                if comp:
+                    all_graphs.append(comp)
+                print(f"Дополнение графа {selected.name} успешно построено!\n")
+                print(comp)
+                comp.print_adj_list()
+                if add_graphs_options(all_graphs, options):
+                    print(update + choice)
+                    print("\n".join(options.values()))
+                    already_printed = True
+                    print(input_string, end="")
+        elif n == 15: # тут использован алгоритм Косарайю
+            print("Этот пункт выполняется только для ориентированных графов!\n")
+            selected = menu_for_choice_graph(all_graphs, True)
+            if not selected: 
+                continue
+            else:
+                if all(len(neighbors) == 0 for neighbors in selected.adj_list.values()):
+                    print("Граф не имеет рёбер, искать тут нечего\n")
+                    continue
+                else:
+                    # 1 шаг: dfs с определением порядков завершения для каждой вершины
+                    visited = set()
+                    stack = []
+                    for vertex in selected.adj_list:
+                        if vertex not in visited:
+                            stack, component_visited = selected.dfs_ordered(vertex, stack, set())
+                            visited.update(component_visited)
+                    # 2 шаг: транспонирование графа
+                    selectedt = selected.transpose()
+                    if selectedt:
+                        all_graphs.append(selectedt)
+                        if add_graphs_options(all_graphs, options):
+                            print(update + choice)
+                            print("\n".join(options.values()))
+                            already_printed = True
+                            print(input_string, end="")
+                    # 3 шаг: dfs по транспонированному графу
+                    visited.clear() # очищаем visited, по новой всё будет посещаться 
+                    scc_list = [] # список компонент сильной связности
+                    for vertex in reversed(stack):
+                        if vertex not in visited:
+                            before_dfs = visited.copy()
+                            component = selectedt.dfs(vertex, visited)
+                            component = visited - before_dfs
+                            scc_list.append(list(component))
+                    if len(scc_list) == 0:
+                        print("Компонент сильной связности не найдено\n")
+                        continue
+                    else:
+                        print("Вот найденные компоненты сильной связности: \n")
+                        for comp in scc_list:
+                            print(", ".join(comp))
         elif n == 0:
             exit()
         elif n == -1:
