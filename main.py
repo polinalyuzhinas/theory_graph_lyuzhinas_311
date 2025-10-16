@@ -40,6 +40,7 @@ def add_graphs_options(all_gr, dict): # функция добавления оп
         dict[13] = "13 - вывести те вершины орграфа, которые являются одновременно заходящими и выходящими для заданной вершины"
         dict[14] = "14 - построить дополнение для данного орграфа"
         dict[15] = "15 - найти компоненты сильной связности орграфа"
+        dict[16] = "16 - вывести один из кратчайших (по числу дуг) путей из вершины u в вершину v"
     return True
 
 if __name__ == "__main__":
@@ -313,7 +314,7 @@ if __name__ == "__main__":
                     print("\n".join(options.values()))
                     already_printed = True
                     print(input_string, end="")
-        elif n == 15: # тут использован алгоритм Косарайю
+        elif n == 15: # тут использован алгоритм Косарайю/Косараджу или ещё как-то
             print("Этот пункт выполняется только для ориентированных графов!\n")
             selected = menu_for_choice_graph(all_graphs, True)
             if not selected: 
@@ -355,6 +356,30 @@ if __name__ == "__main__":
                         print("Вот найденные компоненты сильной связности: \n")
                         for comp in scc_list:
                             print(", ".join(comp))
+        elif n == 16:
+            print("Этот пункт выполняется только для ориентированных графов!\n")
+            selected = menu_for_choice_graph(all_graphs, True)
+            if not selected: 
+                continue
+            else:
+                begin_vertex = input("Введите какую-нибудь вершину из этого графа: ")
+                if begin_vertex not in selected.adj_list:
+                    print("Такой вершины в графе нет!\n")
+                    continue
+                else:
+                    end_vertex = input("Введите ещё какую-нибудь вершину из этого графа: ")
+                    if end_vertex not in selected.adj_list:
+                        print("Такой вершины в графе нет!\n")
+                        continue
+                    else: 
+                        path = selected.bfs_shortest_path(begin_vertex, end_vertex)
+                        if path:
+                            print(f"Кратчайший путь из {begin_vertex} в {end_vertex}: ")
+                            print(" → ".join(path))
+                            print(f"Длина пути: {len(path) - 1} дуг\n")
+                        else:
+                            print(f"Пути из '{begin_vertex}' в '{end_vertex}' не существует!\n")
+                            continue
         elif n == 0:
             exit()
         elif n == -1:

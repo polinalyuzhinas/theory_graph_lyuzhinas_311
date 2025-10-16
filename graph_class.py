@@ -1,4 +1,5 @@
 from itertools import combinations
+from collections import deque
 
 class Graph:
     # конструкторы
@@ -76,8 +77,11 @@ class Graph:
             graphs.append(current_graph) 
         return graphs
 
-    # методы
-    def transform_adj_list(self): # преобразовать список смежности в список рёбер
+
+    #================================================================================
+    # преобразовать список смежности в список рёбер
+    #================================================================================
+    def transform_adj_list(self):
         if not self.adj_list:
             print("<Класс Graph> Список смежности графа пуст, соответственно преобразовывать нечего\n")
             return False
@@ -114,7 +118,10 @@ class Graph:
         return edge_list
 
 
-    def write_to_file(self, file_path): # записать граф в файл
+    #================================================================================
+    # записать граф в файл
+    #================================================================================
+    def write_to_file(self, file_path): 
         with open(file_path, "w", encoding="utf-8") as f: # создать файл с кодировкой utf-8
             f.write(f"Граф {self.name}\n")
             directed_str = "ориентированный" if self.is_directed else "неориентированный"
@@ -135,7 +142,10 @@ class Graph:
             f.write("\n")  # пустая строка между графами (просто для красоты)
 
 
-    def add_vertex(self, new_vertex): # добавить вершину
+    #================================================================================
+    # добавить вершину
+    #================================================================================
+    def add_vertex(self, new_vertex): 
         if not isinstance(new_vertex, str): # если вершина не переводится в строку
             print("<Класс Graph> Некорректный формат данных\n")
             return False
@@ -147,7 +157,11 @@ class Graph:
             print(f"<Класс Graph> Вершина {new_vertex} успешно добавлена!\n")
             return True
 
-    def add_edge(self, new_edge): # добавить ребро (дугу)
+
+    #================================================================================
+    # добавить ребро (дугу)
+    #================================================================================
+    def add_edge(self, new_edge): 
         if not self.is_weighted:
             if len(new_edge) == 2: # у ребра должен быть формат (start, end)
                 start_vertex, end_vertex = new_edge
@@ -204,7 +218,11 @@ class Graph:
         print()
         return True
 
-    def del_edge(self, unnecessary_edge): # удалить ребро (дугу)
+
+    #================================================================================
+    # удалить ребро (дугу)
+    #================================================================================
+    def del_edge(self, unnecessary_edge):
         if (not self.is_weighted and len(unnecessary_edge) != 2) or (self.is_weighted and len(unnecessary_edge) != 3):
             print("<Класс Graph> Ребро задано некорректно\n")
             return False
@@ -250,7 +268,11 @@ class Graph:
         print(f"<Класс Graph> Ребро {start_vertex}-{end_vertex} успешно удалено!\n")
         return True
 
-    def del_vertex(self, unnecessary_vertex):  # удалить вершину
+
+    #================================================================================
+    # удалить вершину
+    #================================================================================
+    def del_vertex(self, unnecessary_vertex):  
         if not isinstance(unnecessary_vertex, str):
             print("<Класс Graph> Некорректный формат данных\n")
             return False
@@ -271,7 +293,11 @@ class Graph:
         print(f"<Класс Graph> Вершина {unnecessary_vertex} успешно удалена!\n")
         return True
 
-    def exist_edge(self, begin_vertex, end_vertex): # существует ли ребро между данным вершинами
+
+    #================================================================================
+    # существует ли ребро между данным вершинами
+    #================================================================================
+    def exist_edge(self, begin_vertex, end_vertex):
         if begin_vertex not in self.adj_list or end_vertex not in self.adj_list:
             print("<Класс Graph> Одной из данных вершин нет в графе, добавьте их сначала\n")
             return False
@@ -284,7 +310,11 @@ class Graph:
         else:
             return end_vertex in self.adj_list[begin_vertex] # для невзвешенного графа: прямая проверка
         
-    def print_adj_list(self): # вывести список смежности в консоль
+
+    #================================================================================
+    # вывести список смежности в консоль
+    #================================================================================
+    def print_adj_list(self):
         if not self.adj_list:
             print("<Класс Graph> Cписок смежности пуст\n")
         else:
@@ -305,7 +335,11 @@ class Graph:
                 print(", ".join(neighbor_strs))
         print("\n")
 
-    def outdegree(self, vertex): # полустепень исхода вершины vertex
+
+    #================================================================================
+    # полустепень исхода вершины vertex
+    #================================================================================
+    def outdegree(self, vertex):
         if vertex not in self.adj_list: # если вершины нет в графе (проверка на всякий случай, чтобы программа не падала)
             return 0
         if self.is_weighted: # если граф взвешенный, каждое ребро представлено кортежем (сосед, вес)
@@ -313,13 +347,21 @@ class Graph:
         else:
             return len(self.adj_list[vertex])
 
-    def V(self): # вернуть множество всех вершин графа
+
+    #================================================================================
+    # вернуть множество всех вершин графа
+    #================================================================================
+    def V(self):
         v = set()
         for k in self.adj_list.keys():
             v.add(k)
         return v
 
-    def construct_complement(self): # построить дополнение для данного графа
+
+    #================================================================================
+    # построить дополнение для данного графа
+    #================================================================================
+    def construct_complement(self):
         edge_list = self.transform_adj_list()
         if not edge_list:
             print("<Класс Graph> У данного графа нет рёбер, поэтому построение дополнения невозможно!\n")
@@ -334,7 +376,11 @@ class Graph:
                     complement.add_edge((e[0], e[1]))
         return complement
 
-    def dfs(self, start, visited=None): # обход в глубину
+
+    #================================================================================
+    # обход в глубину
+    #================================================================================
+    def dfs(self, start, visited=None):
         if visited is None:
             visited = set()
         visited.add(start) # посещение вершины
@@ -344,7 +390,11 @@ class Graph:
                 self.dfs(neighbor_vertex, visited)
         return visited
 
-    def dfs_ordered(self, start, stack=None, visited=None): # обход в глубину (вариант со стеком, нужен для алгоритма Косарайю)
+
+    #================================================================================
+    # обход в глубину (вариант со стеком, нужен для алгоритма Косарайю)
+    #================================================================================
+    def dfs_ordered(self, start, stack=None, visited=None):
         if stack is None:
             stack = []
         if visited is None:
@@ -357,7 +407,11 @@ class Graph:
         stack.append(start)  # добавление вершины в стек когда все её соседи обработаны
         return stack, visited
     
-    def transpose(self): # транспонировать граф (только для орграфа)
+
+    #================================================================================
+    # транспонировать граф
+    #================================================================================
+    def transpose(self):
         edge_list = self.transform_adj_list()
         if not edge_list:
             print("<Класс Graph> У данного графа нет рёбер, поэтому построение транспонированного графа невозможно!\n")
@@ -374,5 +428,45 @@ class Graph:
                     transposed.add_edge((e_list[1], e_list[0]))
         return transposed
 
-    def __str__(self): # вывод основной информации о графе (без списка смежности)
+
+    #================================================================================
+    # обход в ширину с нахождением кратчайшего пути по количеству дуг
+    #================================================================================
+    def bfs_shortest_path(self, begin, end):
+        if begin == end:
+            return [begin]
+        
+        queue = deque([begin]) # deque - double-ended queue, нужна для bfs
+        visited = {begin} # считаем, что начальную вершину уже посетили
+        parent = {begin: None}  # словарь для восстановления пути
+        
+        while queue:
+            current = queue.popleft() # извлечение головы (крайнего левого элемента)
+            if current == end:
+                break
+            neighbors = self.adj_list.get(current, [])
+            for neighbor in neighbors:
+                neighbor_vertex = neighbor if not self.is_weighted else neighbor[0]
+                
+                if neighbor_vertex not in visited:
+                    visited.add(neighbor_vertex)
+                    parent[neighbor_vertex] = current
+                    queue.append(neighbor_vertex) # добавляем в хвост (на крайнее справа место)
+        
+        if end not in parent: # проверка, а была ли в процессе обхода достигнута конечная вершина
+            return []  # если нет, то пути не существует, возвращаем пустоту
+        
+        path = [] # восстанавливаем путь от end к begin
+        current = end # начинаем с конечной вершины
+        while current is not None:
+            path.append(current)
+            current = parent[current]
+        
+        path.reverse() # путь записывался в обратном порядке, нужно его развернуть
+        return path
+
+    #================================================================================
+    # вывод основной информации о графе (без списка смежности)
+    #================================================================================
+    def __str__(self):
         return f"<Класс Graph> Граф {self.name}, {'ориентированный' if self.is_directed else 'неориентированный'}, {'взвешенный'if self.is_weighted else 'невзвешенный'}"
