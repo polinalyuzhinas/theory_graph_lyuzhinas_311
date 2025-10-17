@@ -2,7 +2,7 @@ from graph_class import Graph
 
 all_graphs = []
 
-def menu_for_choice_graph(allgr, needtype=None): # функция выбора названия графа
+def menu_for_choice_graph(allgr, directed=None, weighted=None): # функция выбора названия графа
         print("Выберите имя графа (можно выйти из программы доcрочно, напечатав 0, если все графы пустые): \n")
         print(", ".join([g.name for g in allgr]))
         print(input_string, end="")
@@ -13,19 +13,33 @@ def menu_for_choice_graph(allgr, needtype=None): # функция выбора �
             exit()
         for graph in allgr:
             if graph.name == selected:
-                if needtype is None:
+                if directed is None and weighted is None:
                     return graph # если нам не требуется какой-то конкретный тип графа, то просто возвращаем выбранный
-                elif graph.is_directed == needtype:
+                elif graph.is_directed == directed or graph.is_weighted == weighted: # задан критерий на какой-то один вид
+                    return graph
+                elif (not directed is None and not weighted is None) and (graph.is_directed == directed and graph.is_weighted == weighted): # если критерии сразу на два вида
                     return graph
                 else:
-                    print(f"Мы принимаем только {'ориентированные' if needtype else 'неориентированные'} графы. Тот, что вы выбрали, к таковым не относится\n")
+                    if directed is None: 
+                        str_dir = ""
+                    elif directed:
+                        str_dir = "ориентированные"
+                    else:
+                        str_dir = "неориентированные"
+                    
+                    if weighted is None: 
+                        str_weig = ""
+                    elif weighted:
+                        str_weig = "взвешенные"
+                    else:
+                        str_weig = "невзвешенные"
+                    print(f"Мы принимаем только {str_dir} {str_weig} графы. Тот, что вы выбрали, к таковым не относится\n")
                     return False  
         print("Этого графа ещё не создавали\n")
         return False
 
 def add_graphs_options(all_gr, dict): # функция добавления опций, связанных с графами (просто чтобы сократить код)
-    if all(o in dict.keys() for o in range(4, 14)):
-        return False
+    added = False
     if all(o not in dict.keys() for o in range(4, 13)):
         dict[4] = "4 - вывести список смежности графа"
         dict[5] = "5 - добавить в граф вершину"
@@ -36,12 +50,17 @@ def add_graphs_options(all_gr, dict): # функция добавления оп
         dict[10] = "10 - записать граф в текстовый (формат .txt) файл"
         dict[11] = "11 - скопировать существующий граф"
         dict[12] = "12 - вывести те вершины, полустепень исхода которых больше, чем у заданной вершины"
-    if 13 not in dict.keys() and any(g.is_directed for g in all_gr):
+        added = True
+    if all(n not in dict.keys() for n in (13, 14, 15, 16)) and any(g.is_directed for g in all_gr):
         dict[13] = "13 - вывести те вершины орграфа, которые являются одновременно заходящими и выходящими для заданной вершины"
         dict[14] = "14 - построить дополнение для данного орграфа"
         dict[15] = "15 - найти компоненты сильной связности орграфа"
         dict[16] = "16 - вывести один из кратчайших (по числу дуг) путей из вершины u в вершину v"
-    return True
+        added = True
+    if 17 not in dict.keys() and any(g.is_weighted and not g.is_directed for g in all_gr):
+        dict[17] = "17 - найти минимальное остовное дерево алгоритмом Краскала"
+        added = True
+    return added
 
 if __name__ == "__main__":
     update = "Добавлены новые опции! "
@@ -108,10 +127,10 @@ if __name__ == "__main__":
             print(graph)
             graph.print_adj_list()
             if add_graphs_options(all_graphs, options):
-                    print(update + choice)
-                    print("\n".join(options.values()))
-                    already_printed = True
-                    print(input_string, end="")
+                print(update + choice)
+                print("\n".join(options.values()))
+                already_printed = True
+                print(input_string, end="")
         elif n == 3:
             file_path = input("Введите имя файла: ").strip()
             print()
@@ -380,6 +399,33 @@ if __name__ == "__main__":
                         else:
                             print(f"Пути из '{begin_vertex}' в '{end_vertex}' не существует!\n")
                             continue
+        elif n == 17:
+            print("Этот пункт выполняется только для неориентированных взвешенных графов!\n")
+            selected = menu_for_choice_graph(all_graphs, False, True)
+            if not selected: 
+                continue
+            else:
+                vertices = list(selected.adj_list.keys())
+                if not vertices:
+                    print("Граф пустой, искать нечего\n")
+                    continue
+                    
+                visited = selected.dfs(vertices[0])
+                if len(visited) != len(vertices):
+                    print("Граф не является связным! Алгоритм Краскала, увы, с такими не работает.\n")
+                    continue
+
+                mst = selected.kruskal_main() # получаем минимальное остовное дерево
+                if mst:
+                    print(f"Минимальное остовное дерево {mst.name} успешно создано!")
+                    all_graphs.append(mst)
+                    if add_graphs_options(all_graphs, options):
+                        print(update + choice)
+                        print("\n".join(options.values()))
+                        already_printed = True
+                        print(input_string, end="")
+                    print(mst)
+                    mst.print_adj_list()
         elif n == 0:
             exit()
         elif n == -1:

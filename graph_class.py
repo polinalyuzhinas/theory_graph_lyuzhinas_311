@@ -465,6 +465,86 @@ class Graph:
         path.reverse() # путь записывался в обратном порядке, нужно его развернуть
         return path
 
+
+    #================================================================================
+    # алгоритм Краскала (оптимизированный вариант)
+    #================================================================================
+    def find_root(self, parent, i): # поиск корня вершины i
+        if parent[i] != i:
+            parent[i] = self.find_root(parent, parent[i])  # переходим на один узел назад и так до корня
+        return parent[i]
+    
+    def union_cc(self, parent, rank, x, y): # объединение двух компонент связности (первоначально все компоненты состоят из одной вершины)
+        xroot = self.find_root(parent, x)
+        yroot = self.find_root(parent, y)
+        
+        # rank - верхняя граница высоты дерева с корнем в x
+        if rank[xroot] < rank[yroot]: # берём на рассмотрение наименьший из двух рангов
+            parent[xroot] = yroot
+        elif rank[xroot] > rank[yroot]:
+            parent[yroot] = xroot
+        else:
+            parent[yroot] = xroot # если деревья одинаковых рангов, то увеличиваем его на 1
+            rank[xroot] += 1
+    
+    def kruskal_main(self): # основной алгоритм
+        result = []  # здесь храняться ребра MST
+        
+        # преобразуем вершины в числовые индексы для удобства
+        vertices = list(self.adj_list.keys()) # тут важен порядок, метод V не используем
+        vertex_to_index = {v: i for i, v in enumerate(vertices)}
+        index_to_vertex = {i: v for i, v in enumerate(vertices)}
+
+        edges = [] # собираем список с элементами формата (индекс начальной вершины, индекс конечной вершины, вес)
+        for start_vertex, neighbors in self.adj_list.items():
+            for neighbor in neighbors:
+                end_vertex, weight = neighbor
+                edges.append((vertex_to_index[start_vertex], vertex_to_index[end_vertex], weight))
+
+        unique_edges = [] # надо убрать дубликаты (например, (u, v) и (v, u))
+        for edge in edges:
+            u, v, w = edge
+            if (v, u, w) not in unique_edges:
+                unique_edges.append(edge)
+
+        # шаг 1: сортируем все ребра по весу в порядке возрастания
+        unique_edges.sort(key=lambda x: x[2]) 
+    
+        parent = list(range(len(vertices)))
+        rank = [0] * len(vertices) # у каждой вершины свой ранг, первоначально 0
+        
+        i = 0  # индекс для отсортированных ребер
+        e = 0  # счетчик ребер для результата
+        
+        # количество ребер в MST будет V-1
+        while e < len(vertices) - 1 and i < len(unique_edges):
+            # шаг 2: выбираем наименьшее ребро
+            u, v, w = unique_edges[i]
+            i += 1
+            
+            x = self.find_root(parent, u)
+            y = self.find_root(parent, v)
+            
+            if x != y: # предотвращаем появления циклов (то есть рёбра добавляем только между разными КС)
+                e += 1
+                result.append([u, v, w])
+                self.union_cc(parent, rank, x, y)
+        
+        # преобразование рёбер в привычный формат
+        mst_edges = [] # сюда кладутся преобразованные элементы result
+        for u, v, w in result:
+            mst_edges.append((index_to_vertex[u], index_to_vertex[v], w))
+        
+        mst_graph = Graph(f"MST_{self.name}", True, True) # теперь у нас есть MST данного графа, можно потом с ним работать
+        for vertex in vertices:
+            mst_graph.add_vertex(vertex)
+        
+        for u, v, w in mst_edges:
+            mst_graph.add_edge((u, v, w))
+
+        mst_graph.is_directed = False # нужно было поменять тип, чтобы обратные рёбра не включались
+        return mst_graph
+
     #================================================================================
     # вывод основной информации о графе (без списка смежности)
     #================================================================================
