@@ -1,5 +1,6 @@
 from itertools import combinations
 from collections import deque
+from heapq import heappush, heappop
 
 class Graph:
     # конструкторы
@@ -356,7 +357,7 @@ class Graph:
         for k in self.adj_list.keys():
             v.add(k)
         return v
-
+    
 
     #================================================================================
     # построить дополнение для данного графа
@@ -544,6 +545,49 @@ class Graph:
 
         mst_graph.is_directed = False # нужно было поменять тип, чтобы обратные рёбра не включались
         return mst_graph
+
+
+    #================================================================================
+    # алгоритм Дейкстры
+    #================================================================================
+    def dijkstra(self, start, end): # основной алгоритм
+        vertices = list(self.adj_list.keys())
+        vertex_to_index = {v: i for i, v in enumerate(vertices)} # поиск индекса вершины с списке смежности
+        
+        dist = [float('inf')] * len(vertices) # по умолчанию расстояние от данной вершины до всех остальных бесконечность
+        prev = [-1] * len(vertices) # список предшественников (для восстановления пути)
+        dist[vertex_to_index[start]] = 0 # расстояние от начальной вершины до неё же самой 0
+        
+        pq = [(0, start)] # очередь с парами формата (расстояние, вершина)
+        
+        while pq:
+            current_dist, u = heappop(pq) # извлекаем элемент с хвоста
+            if u == end: # если достигли конечной вершины, можно выйти
+                break
+            u_idx = vertex_to_index[u]  # получаем индекс один раз
+            if current_dist > dist[u_idx]: # если расстояние в очереди больше текущего известного, пропускаем
+                continue
+            for neighbor, weight in self.adj_list[u]: # проверка соседей
+                neighbor_idx = vertex_to_index[neighbor]  # получаем индекс соседа
+                new_dist = dist[u_idx] + weight
+                if new_dist < dist[neighbor_idx]: # если нашли пути короче, записываем пару в голову
+                    dist[neighbor_idx] = new_dist
+                    prev[neighbor_idx] = u
+                    heappush(pq, (new_dist, neighbor))
+        
+        # восстановление пути
+        end_idx = vertex_to_index[end]
+        if prev[end_idx] == -1 and start != end:
+            return []  # путь не существует
+        path = []
+        current = end
+        while current != -1:
+            path.append(current)
+            current_idx = vertex_to_index[current]
+            current = prev[current_idx]
+        path.reverse()
+        
+        return path, dist[end_idx]
 
     #================================================================================
     # вывод основной информации о графе (без списка смежности)

@@ -60,6 +60,9 @@ def add_graphs_options(all_gr, dict): # функция добавления оп
     if 17 not in dict.keys() and any(g.is_weighted and not g.is_directed for g in all_gr):
         dict[17] = "17 - найти минимальное остовное дерево алгоритмом Краскала"
         added = True
+    if 18 not in dict.keys() and any(g.is_weighted for g in all_gr):
+        dict[18] = "18 - найти кратчайший путь (по весу) путь из вершины u в вершину v"
+        added = True
     return added
 
 if __name__ == "__main__":
@@ -91,7 +94,7 @@ if __name__ == "__main__":
                 empty_graph.print_adj_list()
                 if add_graphs_options(all_graphs, options):
                     print(update + choice)
-                    print("\n".join(options.values()))
+                    print("\n".join(value for _, value in sorted(options.items())))
                     already_printed = True
                     print(input_string, end="")
         elif n == 2:
@@ -128,7 +131,7 @@ if __name__ == "__main__":
             graph.print_adj_list()
             if add_graphs_options(all_graphs, options):
                 print(update + choice)
-                print("\n".join(options.values()))
+                print("\n".join(value for _, value in sorted(options.items())))
                 already_printed = True
                 print(input_string, end="")
         elif n == 3:
@@ -167,7 +170,7 @@ if __name__ == "__main__":
                     print(f"Успешно загружено {len(graphs_from_file)} граф(ов)\n")
                     if need_update: # если что-то в списке опций обновилось, выводим меню выбора
                         print(update + choice)
-                        print("\n".join(options.values()))
+                        print("\n".join(value for _, value in sorted(options.items())))
                         already_printed = True
                         print(input_string, end="")
                 except Exception as e:
@@ -330,7 +333,7 @@ if __name__ == "__main__":
                 comp.print_adj_list()
                 if add_graphs_options(all_graphs, options):
                     print(update + choice)
-                    print("\n".join(options.values()))
+                    print("\n".join(value for _, value in sorted(options.items())))
                     already_printed = True
                     print(input_string, end="")
         elif n == 15: # тут использован алгоритм Косарайю/Косараджу или ещё как-то
@@ -356,7 +359,7 @@ if __name__ == "__main__":
                         all_graphs.append(selectedt)
                         if add_graphs_options(all_graphs, options):
                             print(update + choice)
-                            print("\n".join(options.values()))
+                            print("\n".join(value for _, value in sorted(options.items())))
                             already_printed = True
                             print(input_string, end="")
                     # 3 шаг: dfs по транспонированному графу
@@ -421,11 +424,45 @@ if __name__ == "__main__":
                     all_graphs.append(mst)
                     if add_graphs_options(all_graphs, options):
                         print(update + choice)
-                        print("\n".join(options.values()))
+                        print("\n".join(value for _, value in sorted(options.items())))
                         already_printed = True
                         print(input_string, end="")
                     print(mst)
                     mst.print_adj_list()
+        elif n == 18:
+            print("Этот пункт выполняется только для взвешенных графов!\n")
+            selected = menu_for_choice_graph(all_graphs, False, True)
+            if not selected: 
+                continue
+            else:
+                selected_alist = selected.adj_list
+                if any(weight < 0 for neighbors in selected_alist.values() for _, weight in neighbors):
+                    print("Алгоритм Дейкстры не работает с отрицательными весами\n")
+                    continue
+                else: 
+                    begin_vertex = input("Введите какую-нибудь вершину из этого графа: ")
+                    if begin_vertex not in selected_alist:
+                        print("Такой вершины в графе нет!\n")
+                        continue
+                    else:
+                        end_vertex = input("Введите ещё какую-нибудь вершину из этого графа: ")
+                        if end_vertex not in selected_alist:
+                            print("Такой вершины в графе нет!\n")
+                            continue
+                        else:
+                            path, distance = selected.dijkstra(begin_vertex, end_vertex)
+                            if not path:
+                                print(f"Пути из вершины {begin_vertex} в вершину {end_vertex} не существует")
+                            else:
+                                print(f"Кратчайший путь из {begin_vertex} в {end_vertex}:")
+                                print(" → ".join(map(str, path)))
+                                print(f"Длина пути: {distance}")
+
+                                print("\nРёбра пути:")
+                                for i in range(len(path) - 1):
+                                    u, v = path[i], path[i + 1]
+                                    weight = next(w for neighbor, w in selected.adj_list[u] if neighbor == v)
+                                    print(f"  {u} -> {v} (вес: {weight})")
         elif n == 0:
             exit()
         elif n == -1:
@@ -433,7 +470,7 @@ if __name__ == "__main__":
             exit()
         elif n == 100:
             print(choice)
-            print("\n".join(options.values()))
+            print("\n".join(value for _, value in sorted(options.items())))
             print(input_string, end="")
             already_printed = True
         else:
