@@ -60,8 +60,9 @@ def add_graphs_options(all_gr, dict): # функция добавления оп
     if 17 not in dict.keys() and any(g.is_weighted and not g.is_directed for g in all_gr):
         dict[17] = "17 - найти минимальное остовное дерево алгоритмом Краскала"
         added = True
-    if 18 not in dict.keys() and any(g.is_weighted for g in all_gr):
-        dict[18] = "18 - найти кратчайший путь (по весу) путь из вершины u в вершину v"
+    if all(n not in dict.keys() for n in (18, 19)) and any(g.is_weighted for g in all_gr):
+        dict[18] = "18 - найти кратчайший путь (по весу) из вершины u в вершину v"
+        dict[19] = "19 - найти k кратчайших путей (по весу) из вершины u в вершину v"
         added = True
     return added
 
@@ -397,7 +398,7 @@ if __name__ == "__main__":
                         path = selected.bfs_shortest_path(begin_vertex, end_vertex)
                         if path:
                             print(f"Кратчайший путь из {begin_vertex} в {end_vertex}: ")
-                            print(" → ".join(path))
+                            print(" -> ".join(path))
                             print(f"Длина пути: {len(path) - 1} дуг\n")
                         else:
                             print(f"Пути из '{begin_vertex}' в '{end_vertex}' не существует!\n")
@@ -455,7 +456,7 @@ if __name__ == "__main__":
                                 print(f"Пути из вершины {begin_vertex} в вершину {end_vertex} не существует")
                             else:
                                 print(f"Кратчайший путь из {begin_vertex} в {end_vertex}:")
-                                print(" → ".join(map(str, path)))
+                                print(" -> ".join(map(str, path)))
                                 print(f"Длина пути: {distance}")
 
                                 print("\nРёбра пути:")
@@ -463,6 +464,54 @@ if __name__ == "__main__":
                                     u, v = path[i], path[i + 1]
                                     weight = next(w for neighbor, w in selected.adj_list[u] if neighbor == v)
                                     print(f"  {u} -> {v} (вес: {weight})")
+        elif n == 19:
+            print("Этот пункт выполняется только для взвешенных графов!\n")
+            selected = menu_for_choice_graph(all_graphs, False, True)
+            if not selected: 
+                continue
+            else:
+                selected_alist = selected.adj_list
+                if any(weight < 0 for neighbors in selected_alist.values() for _, weight in neighbors):
+                    print("Алгоритм Йена не работает с отрицательными весами\n")
+                    continue
+                else: 
+                    begin_vertex = input("Введите какую-нибудь вершину из этого графа: ")
+                    if begin_vertex not in selected_alist:
+                        print("Такой вершины в графе нет!\n")
+                        continue
+                    else:
+                        end_vertex = input("Введите ещё какую-нибудь вершину из этого графа: ")
+                        if end_vertex not in selected_alist:
+                            print("Такой вершины в графе нет!\n")
+                            continue
+                        else:
+                            count = input("Введите какое-нибудь целое k: ")
+                            try:
+                                k = int(count)
+                                if k <= 0:
+                                    print("k должно быть положительным числом!\n")
+                                    continue
+                                
+                                paths = selected.yen(begin_vertex, end_vertex, k)
+                    
+                                if not paths:
+                                    print(f"Пути из вершины {begin_vertex} в вершину {end_vertex} не существует")
+                                else:
+                                    print(f"Найдено {len(paths)} кратчайших путей из {begin_vertex} в {end_vertex} (k = {k})\n")
+                                    for path_num, (distance, path) in enumerate(paths, 1):
+                                        print(f"Путь № #{path_num}:")
+                                        print(f"Маршрут: {' -> '.join(map(str, path))}")
+                                        print(f"Длина: {distance}")
+                                        print(f"Рёбра пути:")
+                                        total_weight = 0
+                                        for i in range(len(path) - 1):
+                                            u, v = path[i], path[i + 1]
+                                            weight = next(w for neighbor, w in selected.adj_list[u] if neighbor == v)
+                                            total_weight += weight
+                                            print(f"{u} -> {v} (вес: {weight})")
+                            except ValueError:
+                                print("Введено не целое число\n")
+                                continue
         elif n == 0:
             exit()
         elif n == -1:

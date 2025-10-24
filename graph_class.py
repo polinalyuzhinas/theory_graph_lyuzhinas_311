@@ -1,6 +1,7 @@
 from itertools import combinations
 from collections import deque
 from heapq import heappush, heappop
+from copy import deepcopy
 
 class Graph:
     # конструкторы
@@ -553,6 +554,9 @@ class Graph:
     def dijkstra(self, start, end): # основной алгоритм
         vertices = list(self.adj_list.keys())
         vertex_to_index = {v: i for i, v in enumerate(vertices)} # поиск индекса вершины с списке смежности
+
+        if start not in vertex_to_index or end not in vertex_to_index:
+            return [], float('inf')
         
         dist = [float('inf')] * len(vertices) # по умолчанию расстояние от данной вершины до всех остальных бесконечность
         prev = [-1] * len(vertices) # список предшественников (для восстановления пути)
@@ -588,6 +592,90 @@ class Graph:
         path.reverse()
         
         return path, dist[end_idx]
+
+
+    #================================================================================
+    # алгоритм Йена (использует алгоритм Дейкстры выше)
+    #================================================================================
+    def yen(self, start, end, k): # основной алгоритм
+        
+        first_path, first_length = self.dijkstra(start, end) # первый путь
+        if not first_path:
+            return []
+        
+        paths = [(first_length, first_path)] # все пути, формат (длина, список вершин пути)
+        candidates = [] # потенциальные k-кратчайшие пути
+        
+        for _ in range(1, k): # поиск остальных k-1 путей
+            if not paths:
+                break
+                
+            prev_path = paths[-1][1] # берём последний найденный путь для генерации новых кандидатов
+
+            for i in range(len(prev_path) - 1):
+                spur = prev_path[i] # вершина отклонения
+                root = prev_path[:i + 1] # префикс пути до spur
+                
+                temp_graph = deepcopy(self) # cохранение оригинального графа ...
+                for _, path in paths: # ... поскольку его надо немного модифицировать
+                    if len(path) > i and path[:i + 1] == root:
+                        u, v = path[i], path[i + 1] # удаляем ребро, которое используется в уже найденных путях с таким же root-префиксом (чтобы избежать повторения путей)
+                        weight = None
+                        for neighbor, w in temp_graph.adj_list.get(u, []):
+                            if neighbor == v:
+                                weight = w
+                                break
+                        if weight is not None:
+                            temp_graph.del_edge((u, v, weight)) 
+        
+                removed_nodes = root[:-1] # вершины для удаления
+                for node in removed_nodes: # удаляем все вершины из root-префикса кроме spur (это предотвращает возврат к уже пройденным вершинам)
+                    if node in temp_graph.adj_list:
+                        del temp_graph.adj_list[node]
+                    # очистка ссылок на удалённые вершины из всех списков смежности
+                    for u in list(temp_graph.adj_list.keys()):
+                        temp_graph.adj_list[u] = [
+                            (neighbor, weight) for neighbor, weight in temp_graph.adj_list[u]
+                            if neighbor not in removed_nodes # удаляем ссылки на удалённые вершины
+                        ]
+                
+                dijkstra_result = temp_graph.dijkstra(spur, end) # поиск spur path (кратчайший путь от вершины отклонения до конечной вершины в модифицированном графе (без использованных рёбер и вершин))
+                if not dijkstra_result or not dijkstra_result[0]: # если путь не найден
+                    continue
+                spur_path, _ = dijkstra_result # найденный spur path
+
+                if spur_path: # если spur path найден, формируем полный путь-кандидат
+                    total_path = root[:-1] + spur_path # объединяем root-префикс (без spur) и spur path
+                    total_length = 0 # проверяем длину по исходному графу
+                    valid = True
+                    for j in range(len(total_path) - 1):
+                        u, v = total_path[j], total_path[j + 1]
+                        found = False
+                        for n, w in self.adj_list.get(u, []): # поиск веса ребра в оригинальном графе
+                            if n == v:
+                                total_length += w
+                                found = True
+                                break
+                        if not found:
+                            valid = False # ребро не существует в оригинальном графе
+                            break
+                    
+                    # добавляем кандидата если:
+                    # 1. Путь корректен (все рёбра существуют)
+                    # 2. Путь уникален (не содержится в paths или candidates)
+                    if valid and not any(p == total_path for _, p in paths) and not any(p == total_path for _, p in candidates):
+                        heappush(candidates, (total_length, total_path))
+            
+            # если кандидатов нет, завершаем поиск (больше путей не существует)
+            if not candidates:
+                break
+            
+            # извлекаем кандидата с наименьшей длиной и добавляем в результат
+            length, path = heappop(candidates)
+            paths.append((length, path))
+        
+        return paths[:k]
+    
 
     #================================================================================
     # вывод основной информации о графе (без списка смежности)
