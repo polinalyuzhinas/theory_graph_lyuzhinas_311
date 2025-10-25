@@ -678,6 +678,189 @@ class Graph:
     
 
     #================================================================================
+    # алгоритм Беллмана-Форда для поиска отрицательных циклов
+    #================================================================================
+
+    def bellman_ford_all_negative_cycles(self, start=None): # основной алгоритм
+        if start is None:
+            # поиск всех циклов в графе
+            return self.find_all_cycles_in_graph()
+        else:
+            # поиск циклов из конкретной вершины
+            return self.find_cycles_from_vertex(start)
+
+    def find_all_cycles_in_graph(self): # поиск отрицательных циклов в графе
+        all_cycles = set()
+        vertices = list(self.adj_list.keys())
+        
+        # запуск из каждой вершины, собираем все уникальные циклы
+        for start_vertex in vertices:
+            _, _, _, cycles = self.find_cycles_from_vertex(start_vertex)
+            for cycle in cycles:
+                if self.is_negative_cycle(cycle):
+                    cycle_tuple = tuple(cycle)
+                    all_cycles.add(cycle_tuple)
+        
+        cycles_list = [list(cycle) for cycle in all_cycles]
+        return len(cycles_list) > 0, {}, {}, cycles_list
+
+    def find_cycles_from_vertex(self, start): # обнаружение всех отрицательных циклов из конкретной вершины
+        vertices = list(self.adj_list.keys())
+        
+        # создание фиктивной вершины (позволяет найти только достижимые из конкретной вершины циклы)
+        temp_vertex = "NIL"
+        temp_adj_list = self.adj_list.copy()  # копируем исходный список смежности
+        
+        # фиктивная вершина соединена со всеми другими вершинами нулевыми рёбрами
+        temp_adj_list[temp_vertex] = []
+        for vertex in vertices:
+            temp_adj_list[temp_vertex].append((vertex, 0))
+            
+        # преобразование вершин в индексе с графе с фиктивной вершиной
+        extended_vertices = vertices + [temp_vertex]
+        extended_vertex_to_index = {v: i for i, v in enumerate(extended_vertices)}
+        extended_index_to_vertex = {i: v for i, v in enumerate(extended_vertices)}
+        
+        extended_n = len(extended_vertices)
+        temp_idx = extended_vertex_to_index[temp_vertex]  # индекс фиктивной вершины
+        
+        # инициализация массивов для расширенного графа
+        dist = [float('inf')] * extended_n
+        parent = [-1] * extended_n
+        dist[temp_idx] = 0
+
+        # все рёбра расширенного графа
+        edges = []
+        for u, neighbors in temp_adj_list.items():
+            u_idx = extended_vertex_to_index[u]
+            for v, w in neighbors:
+                v_idx = extended_vertex_to_index[v]
+                edges.append((u_idx, v_idx, w))
+
+        # фаза релаксации для расширенного графа
+        for _ in range(extended_n - 1):
+            updated = False
+            for u_idx, v_idx, w in edges:
+                if dist[u_idx] != float('inf') and dist[u_idx] + w < dist[v_idx]:
+                    dist[v_idx] = dist[u_idx] + w
+                    parent[v_idx] = u_idx
+                    updated = True
+            if not updated:
+                break
+
+        # поиск всех отрицательных циклов в расширенном графе
+        negative_cycles = []  # список найденных циклов
+        visited_cycles = set()  # множество для отслеживания уникальности
+        
+        for u_idx, v_idx, w in edges:  # проверяем все рёбра на наличие циклов
+            if dist[u_idx] != float('inf') and dist[u_idx] + w < dist[v_idx]:
+                # находим вершину, принадлежащую циклу
+                x = v_idx  # начинаем с вершины v
+                for _ in range(extended_n):
+                    x = parent[x]
+                    
+                # восстанавливаем цикл, исключая фиктивную вершину
+                cycle = self.reconstruct_cycle(parent, x, extended_index_to_vertex, temp_vertex)
+                if cycle:
+                    normalized_cycle = self.normalize_cycle(cycle)
+                    cycle_tuple = tuple(normalized_cycle) 
+                    
+                    # добавляем цикл, если он уникален
+                    if cycle_tuple not in visited_cycles:
+                        negative_cycles.append(normalized_cycle)
+                        visited_cycles.add(cycle_tuple)
+
+        has_negative_cycles = len(negative_cycles) > 0
+        dist_dict = {extended_index_to_vertex[i]: dist[i] for i in range(extended_n)}
+        parent_dict = {extended_index_to_vertex[i]: extended_index_to_vertex[parent[i]] if parent[i] != -1 else None for i in range(extended_n)}
+        return has_negative_cycles, dist_dict, parent_dict, negative_cycles
+    
+    def is_negative_cycle(self, cycle): # является ли цикл отрицательным
+        if len(cycle) < 3:
+            return False
+        
+        total_weight = 0
+        for i in range(len(cycle) - 1):
+            u, v = cycle[i], cycle[i + 1]
+            weight_found = False
+            for neighbor, w in self.adj_list.get(u, []):
+                if neighbor == v:
+                    total_weight += w
+                    weight_found = True
+                    break
+            if not weight_found:
+                return False
+        
+        return total_weight < 0
+
+    def reconstruct_cycle(self, parent, start_idx, index_to_vertex, exclude_vertex=None): # восстанавливает цикл из родительских ссылок
+        cycle = []  # список для хранения вершин цикла
+        y = start_idx  # начинаем с заданной вершины
+        visited = set()  # множество для отслеживания посещенных вершин
+        
+        while True:
+            if y in visited:  # если вершина уже посещена - найден цикл
+                break  # выходим из цикла
+            visited.add(y)  # отмечаем вершину как посещенную
+            
+            vertex_name = index_to_vertex[y]  # получаем имя вершины
+            if exclude_vertex is None or vertex_name != exclude_vertex:
+                cycle.append(vertex_name)  # добавляем вершину в цикл, если она не исключена
+                
+            y = parent[y]  # переходим к предшественнику
+            if y == -1:  # если предшественника нет
+                return None  # цикл не найден
+                
+        # находим начало цикла в списке
+        start_vertex_name = index_to_vertex[y]  # имя начальной вершины цикла
+        
+        # проверяем, не исключена ли начальная вершина
+        if exclude_vertex is not None and start_vertex_name == exclude_vertex:
+            return None  # цикл начинается с исключенной вершины
+            
+        # ищем позицию начальной вершины в найденном цикле
+        cycle_start_idx = None
+        for i, vertex in enumerate(cycle):  # перебираем вершины цикла
+            if vertex == start_vertex_name:  # нашли начальную вершину
+                cycle_start_idx = i  # запоминаем позицию
+                break
+            
+        if cycle_start_idx is None:  # если начальная вершина не найдена в цикле
+            return None  # цикла не образуется
+        
+        full_cycle = cycle[cycle_start_idx:] + [start_vertex_name]  # формируем полный цикл
+        
+        return full_cycle  # возвращаем цикл
+
+    def normalize_cycle(self, cycle): # устранение дубликатов
+        if len(cycle) <= 2:  # если цикл слишком короткий
+            return cycle  # возвращаем как есть
+        
+        # убираем дублирующую конечную вершину если есть
+        if cycle[0] == cycle[-1]:
+            working_cycle = cycle[:-1]  # работаем без дублированной вершины
+        else:
+            working_cycle = cycle  # оставляем как есть
+            
+        min_rotation = working_cycle  # изначально минимальное представление - исходный цикл
+        n = len(working_cycle)  # длина цикла без дублированной вершины
+        
+        for i in range(1, n):  # перебираем все возможные циклические сдвиги
+            rotated = working_cycle[i:] + working_cycle[:i]  # циклический сдвиг
+            if rotated < min_rotation:  # если нашли лексикографически меньшее представление
+                min_rotation = rotated  # обновляем минимальное представление
+            
+        reversed_cycle = working_cycle[::-1]  # разворачиваем цикл
+        for i in range(n):  # перебираем циклические сдвиги обратного направления
+            rotated = reversed_cycle[i:] + reversed_cycle[:i]  # сдвиг обратного цикла
+            if rotated < min_rotation:  # если нашли меньшее представление
+                min_rotation = rotated  # обновляем
+        
+        # возвращаем цикл с дублированной начальной вершиной в конце
+        return min_rotation + [min_rotation[0]]
+
+
+    #================================================================================
     # вывод основной информации о графе (без списка смежности)
     #================================================================================
     def __str__(self):

@@ -60,9 +60,10 @@ def add_graphs_options(all_gr, dict): # функция добавления оп
     if 17 not in dict.keys() and any(g.is_weighted and not g.is_directed for g in all_gr):
         dict[17] = "17 - найти минимальное остовное дерево алгоритмом Краскала"
         added = True
-    if all(n not in dict.keys() for n in (18, 19)) and any(g.is_weighted for g in all_gr):
+    if all(n not in dict.keys() for n in (18, 19, 20)) and any(g.is_weighted for g in all_gr):
         dict[18] = "18 - найти кратчайший путь (по весу) из вершины u в вершину v"
         dict[19] = "19 - найти k кратчайших путей (по весу) из вершины u в вершину v"
+        dict[20] = "20 - найти отрицательные циклы"
         added = True
     return added
 
@@ -512,6 +513,23 @@ if __name__ == "__main__":
                             except ValueError:
                                 print("Введено не целое число\n")
                                 continue
+        elif n == 20:
+            print("Этот пункт выполняется только для взвешенных графов!\n")
+            selected = menu_for_choice_graph(all_graphs, False, True)
+            if not selected: 
+                continue
+            else:
+                print("Поиск всех отрицательных циклов:")
+        
+                all_cycles = set()
+                vertices = list(selected.adj_list.keys())
+                
+                has_cycles, dist, parent, cycles = selected.bellman_ford_all_negative_cycles()
+        
+                print(f"Найдено отрицательных циклов: {len(cycles)}")
+                for i, cycle in enumerate(cycles, 1):
+                    print(f"Цикл {i}: {' -> '.join(map(str, cycle))}")
+
         elif n == 0:
             exit()
         elif n == -1:
