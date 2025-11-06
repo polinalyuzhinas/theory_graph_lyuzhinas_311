@@ -65,6 +65,9 @@ def add_graphs_options(all_gr, dict): # функция добавления оп
         dict[19] = "19 - найти k кратчайших путей (по весу) из вершины u в вершину v"
         dict[20] = "20 - найти отрицательные циклы"
         added = True
+    if 21 not in dict.keys() and any(g.is_weighted and g.is_directed for g in all_gr):
+        dict[21] = "21 - найти максимальный поток между вершиной-истоком и вершиной-стоком"
+        added = True
     return added
 
 if __name__ == "__main__":
@@ -529,7 +532,40 @@ if __name__ == "__main__":
                 print(f"Найдено отрицательных циклов: {len(cycles)}")
                 for i, cycle in enumerate(cycles, 1):
                     print(f"Цикл {i}: {' -> '.join(map(str, cycle))}")
-
+        elif n == 21:
+            print("Этот пункт выполняется только для ориентированных взвешенных графов!\n")
+            selected = menu_for_choice_graph(all_graphs, True, True)
+            if not selected: 
+                continue
+            else:
+                source = input("Введите какую-нибудь вершину - исток: ").strip()
+                sink = input("Введите какую-нибудь другую вершину - сток: ").strip()
+                
+                if source not in selected.adj_list:
+                    print(f"Исток {source} не найден в графе\n")
+                    continue
+                if sink not in selected.adj_list:
+                    print(f"Сток {sink} не найден в графе\n")
+                    continue
+                
+                max_flow, flow_decomposition = selected.dinic(source, sink)
+                
+                print(f"Максимальный поток от {source} к {sink}: {max_flow}\n")
+                print("Поток по рёбрам: ")
+                
+                has_flow_edges = False # наличие рёбер с положительным потоком
+                for u in flow_decomposition: # все начальные вершины рёбер из разложения потока
+                    for v, flow in flow_decomposition[u].items(): # все конечные вершины и значения потока для каждой начальной вершины u
+                        if flow > 0:
+                            has_flow_edges = True
+                            capacity = 0 # инициализация изначальной пропускной способности нулём
+                            for neighbor, cap in selected.adj_list[u]:
+                                if neighbor == v: # сосед - вершина v
+                                    capacity = cap
+                                    break
+                            print(f"{u} -> {v}: {flow}/{capacity} ")
+                if not has_flow_edges:
+                    print("Нет рёбер с положительным потоком\n")
         elif n == 0:
             exit()
         elif n == -1:
