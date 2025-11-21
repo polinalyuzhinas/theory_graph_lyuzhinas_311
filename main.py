@@ -265,7 +265,8 @@ if __name__ == "__main__":
             if not selected: 
                 continue
             else:
-                print(", ".join(selected.transform_adj_list()))
+                if selected.transform_adj_list():
+                    print(", ".join(selected.transform_adj_list()))
         elif n == 10:
             selected = menu_for_choice_graph(all_graphs)
             if not selected: 
@@ -318,8 +319,13 @@ if __name__ == "__main__":
                     continue
                 else:
                     for end_vertex in selected.adj_list[begin_vertex]:
-                        if selected.exist_edge(begin_vertex, end_vertex) and selected.exist_edge(end_vertex, begin_vertex):
-                            temp.append(end_vertex)
+                        if selected.is_weighted:
+                            end_vertex_name = end_vertex[0]
+                        else:
+                            end_vertex_name = end_vertex
+                        
+                        if selected.exist_edge(begin_vertex, end_vertex) and selected.exist_edge(end_vertex_name, begin_vertex):
+                            temp.append(end_vertex_name)
                     if not temp:
                         print("Искомые вершины не найдены\n")
                     else:
@@ -333,9 +339,9 @@ if __name__ == "__main__":
                 comp = selected.construct_complement()
                 if comp:
                     all_graphs.append(comp)
-                print(f"Дополнение графа {selected.name} успешно построено!\n")
-                print(comp)
-                comp.print_adj_list()
+                    print(f"Дополнение графа {selected.name} успешно построено!\n")
+                    print(comp)
+                    comp.print_adj_list()
                 if add_graphs_options(all_graphs, options):
                     print(update + choice)
                     print("\n".join(value for _, value in sorted(options.items())))

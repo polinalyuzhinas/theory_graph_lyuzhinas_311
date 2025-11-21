@@ -300,18 +300,25 @@ class Graph:
     # существует ли ребро между данным вершинами
     #================================================================================
     def exist_edge(self, begin_vertex, end_vertex):
-        if begin_vertex not in self.adj_list or end_vertex not in self.adj_list:
-            print("<Класс Graph> Одной из данных вершин нет в графе, добавьте их сначала\n")
+        if begin_vertex not in self.adj_list:
             return False
-    
+        
+        # end_vertex: если это кортеж (для взвешенного графа), извлекаем имя вершины
+        if isinstance(end_vertex, tuple):
+            end_vertex_name = end_vertex[0]  # извлекаем вершину из (vertex, weight)
+        else:
+            end_vertex_name = end_vertex
+        
+        if end_vertex_name not in self.adj_list:
+            return False
+        
         if self.is_weighted:
-            for neighbor in self.adj_list[begin_vertex]: # для взвешенного графа: проверяем наличие кортежа (end_vertex, weight)
-                if neighbor[0] == end_vertex:  # сравниваем только имя вершины, игнорируя вес
+            for neighbor in self.adj_list[begin_vertex]:
+                if neighbor[0] == end_vertex_name:  # сравниваем имена вершин
                     return True
             return False
         else:
-            return end_vertex in self.adj_list[begin_vertex] # для невзвешенного графа: прямая проверка
-        
+            return end_vertex_name in self.adj_list[begin_vertex] # для невзвешенного графа - прямая проверка
 
     #================================================================================
     # вывести список смежности в консоль
@@ -628,9 +635,14 @@ class Graph:
                         if weight is not None:
                             temp_graph.del_edge((u, v, weight)) 
         
-                removed_nodes = root[:-1] # вершины для удаления
+                removed_nodes = [node for node in root if node != spur] # вершины для удаления (кроме spur)
                 for node in removed_nodes: # удаляем все вершины из root-префикса кроме spur (это предотвращает возврат к уже пройденным вершинам)
                     if node in temp_graph.adj_list:
+                        neighbors_to_remove = [] # удалить все рёбра, связанные с этой вершиной
+                        for neighbor, weight in temp_graph.adj_list.get(node, []):
+                            neighbors_to_remove.append((node, neighbor, weight))
+                        for edge in neighbors_to_remove:
+                            temp_graph.del_edge(edge)
                         del temp_graph.adj_list[node]
                     # очистка ссылок на удалённые вершины из всех списков смежности
                     for u in list(temp_graph.adj_list.keys()):
@@ -865,7 +877,8 @@ class Graph:
     def dinic(self, source, sink):
         residual_graph = {} # остаточная сеть (в виде словаря)
         for u in self.adj_list: 
-            residual_graph[u] = {} # инициализируем словарь смежности для вершины u в остаточной сети
+            if u not in residual_graph: # инициализируем словарь смежности для вершины u в остаточной сети
+                residual_graph[u] = {} 
             for v, capacity in self.adj_list[u]:
                 residual_graph[u][v] = capacity # устанавливаем прямую пропускную способность равной исходной
                 if v not in residual_graph:
